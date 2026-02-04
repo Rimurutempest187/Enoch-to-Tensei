@@ -7,16 +7,32 @@ from config import START_COINS, DAILY_REWARD
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     init_user(uid)
-    await update.message.reply_text(
-        "🎮 Tensura World Gacha\n\n"
-        "/summon - single\n"
-        "/summon10 - 10x\n"
-        "/store - visit store\n"
-        "/inventory - show your chars\n"
-        "/daily - claim daily\n"
-        "/balance - coins\n"
-        "/tops - leaderboard\n"
+
+    text = (
+        "🎮 <b>Welcome to A-F-W!</b>\n\n"
+        "💡 <i>Adventure, collect, and battle in the world of characters!</i>\n\n"
+
+        "🗂 <b>Available Commands:</b>\n"
+        "/summon - Draw a character (Single)\n"
+        "/summon10 - Draw 10 characters at once\n"
+        "/store - Browse and buy characters in the store\n"
+        "/inventory - See all your collected characters\n"
+        "/daily - Claim your daily reward coins\n"
+        "/balance - Check your coins and stats\n"
+        "/tops - View the top players leaderboard\n\n"
+
+        "🔥 Tips:\n"
+        "- Summon daily to get rare characters!\n"
+        "- Upgrade your characters and collect coins.\n"
+        "- Participate in duels and quests to earn rewards.\n\n"
+
+        "⚡ Enjoy the game and may luck be on your side!"
     )
+
+    await update.message.reply_text(
+        text, parse_mode="HTML"
+    )
+
 
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
