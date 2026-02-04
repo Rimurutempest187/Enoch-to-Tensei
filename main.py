@@ -10,7 +10,11 @@ from config import BOT_TOKEN, OWNER_ID
 # admin auto-backup starter (if implemented in handlers/admin.py)
 from handlers.admin import start_auto_backup
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+logging.basicConfig(
+    filename="bot.log",
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
