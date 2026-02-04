@@ -4,6 +4,10 @@ from .summon import summon, summon10
 from .store import store_cmd, store_btn, send_store
 from .inventory import inventory_cmd, inv_btn
 from .admin import addcoins_cmd, addadmin_cmd, upload_cmd
+from .profile import profile_cmd
+from .sell import sell_cmd
+from .quest import quest_cmd, claimquest_cmd
+from .duel import duel_cmd
 from db import is_admin
 from config import OWNER_ID
 
@@ -24,6 +28,12 @@ def register_handlers(app):
     # Inventory
     app.add_handler(CommandHandler("inventory", inventory_cmd))
     app.add_handler(CallbackQueryHandler(inv_btn, pattern=r'^inv_\d+$'))
+    
+    app.add_handler(CommandHandler("profile", profile_cmd))
+    app.add_handler(CommandHandler("sell", sell_cmd))
+    app.add_handler(CommandHandler("quest", quest_cmd))
+    app.add_handler(CommandHandler("claimquest", claimquest_cmd))
+    app.add_handler(CommandHandler("duel", duel_cmd))
 
     # Admin
     app.add_handler(CommandHandler("upload", upload_cmd))
