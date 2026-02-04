@@ -1,0 +1,26 @@
+<h2>Users</h2>
+
+<table border="1">
+<tr>
+<th>ID</th><th>Coins</th><th>Level</th><th>EXP</th><th>Edit</th>
+</tr>
+
+{% for u in users %}
+<tr>
+<td>{{u[0]}}</td>
+<td>{{u[1]}}</td>
+<td>{{u[2]}}</td>
+<td>{{u[3]}}</td>
+
+<td>
+<form action="/edit_coins/{{u[0]}}" method="post">
+<input name="coins" value="{{u[1]}}">
+<button>Save</button>
+</form>
+</td>
+
+</tr>
+{% endfor %}
+</table>
+
+<a href="/dashboard">Back</a>
