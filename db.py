@@ -148,6 +148,10 @@ def get_tops(limit:int=10):
     LIMIT ?
     """, (limit,))
     return c.fetchall()
+    
+def get_all_users():
+    c.execute("SELECT user_id FROM users")
+    return [r[0] for r in c.fetchall()]
 
 # --- admin ---
 def is_admin(uid: int) -> bool:
