@@ -53,6 +53,7 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton("📷 Upload Char", callback_data="admin_upload"),
             InlineKeyboardButton("📊 Stats", callback_data="admin_stats"),
+            InlineKeyboardButton("💾 Backup", callback_data="admin_backup"),  
         ],
         [
             InlineKeyboardButton("❌ Close", callback_data="admin_close"),
@@ -79,6 +80,10 @@ async def admin_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.message.reply_text("⚠ Admin only")
         return ConversationHandler.END
 
+# ----- BACKUP -----
+    if q.data == "admin_backup":
+        await backup_cmd(q.message, context)
+        return ConversationHandler.END
 
     # ----- ADD COINS -----
     if q.data == "admin_addcoins":
