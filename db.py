@@ -42,6 +42,17 @@ def init_db():
         PRIMARY KEY(user_id,char_id)
     )
     """)
+# quests
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS quests(
+        user_id INTEGER,
+        summon_count INTEGER,
+        duel_win INTEGER,
+        claimed INTEGER,
+        day INTEGER,
+        PRIMARY KEY(user_id)
+    )
+    """)
 
     # admins
     c.execute("""
