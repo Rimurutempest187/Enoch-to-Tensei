@@ -1,4 +1,5 @@
 # handlers/__init__.py
+
 from telegram.ext import (
     CommandHandler,
     CallbackQueryHandler,
@@ -25,13 +26,13 @@ from .duel import duel_cmd
 # Admin
 from .admin import (
     admin_cmd,
+    admin_btn,
     admin_conv,
-    backup_cmd,
+    backup_cmd_command,
     upload_cmd,
+    addadmin_cmd,
+    start_auto_backup,
 )
-
-from db import add_admin
-from config import OWNER_ID
 
 def register_handlers(app):
     # Basic
@@ -60,27 +61,11 @@ def register_handlers(app):
 
     # Admin panel & wizard
     app.add_handler(CommandHandler("admin", admin_cmd))
-    app.add_handler(admin_conv)
+    app.add_handler(admin_conv)  # register ConversationHandler (entry via CallbackQueryHandler)
+    # also register admin button callback explicitly (safe)
+    app.add_handler(CallbackQueryHandler(admin_btn, pattern=r'^admin_'))
 
-    # Admin utilities
-    app.add_handler(CommandHandler("backup", backup_cmd))
+    # Admin direct commands
+    app.add_handler(CommandHandler("backup", backup_cmd_command))
     app.add_handler(CommandHandler("upload", upload_cmd))
-
-    # Owner-only addadmin wrapper
-    async def owner_only_addadmin(update, context):
-        uid = update.effective_user.id
-        if uid != OWNER_ID:
-            return await update.message.reply_text("Owner only")
-        if len(context.args) != 1:
-            return await update.message.reply_text("Usage: /addadmin <user_id>")
-        try:
-            target_id = int(context.args[0])
-        except:
-            return await update.message.reply_text("Invalid user_id")
-        ok = add_admin(target_id)
-        if ok:
-            return await update.message.reply_text(f"✅ {target_id} added as admin")
-        else:
-            return await update.message.reply_text("User already admin or DB error")
-
-    app.add_handler(CommandHandler("addadmin", owner_only_addadmin))
+    app.add_handler(CommandHandler("addadmin", addadmin_cmd))
