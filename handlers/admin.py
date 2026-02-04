@@ -3,8 +3,6 @@
 import os
 import zipfile
 from datetime import datetime
-import aiocron
-
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes,
@@ -24,17 +22,15 @@ from db import (
     get_all_users,
     c,
 )
-from config import DB_FILE
+from config import DB_FILE, OWNER_ID
 
 # ================= STATES =================
 ADDCOINS_UID = 1
 ADDCOINS_AMOUNT = 2
-
 BC_TEXT = 10
 BC_CONFIRM = 11
 
 # ================= ADMIN PANEL =================
-
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     if not is_admin(uid):
@@ -49,7 +45,7 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton("📷 Upload Char", callback_data="admin_upload"),
             InlineKeyboardButton("📊 Stats", callback_data="admin_stats"),
-            InlineKeyboardButton("💾 Backup", callback_data="admin_backup"),  
+            InlineKeyboardButton("💾 Backup", callback_data="admin_backup"),
         ],
         [
             InlineKeyboardButton("❌ Close", callback_data="admin_close"),
@@ -63,32 +59,30 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ================= PANEL BUTTONS =================
-
 async def admin_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
-
     uid = q.from_user.id
     if not is_admin(uid):
         await q.message.reply_text("⚠ Admin only")
         return ConversationHandler.END
 
-    # ----- BACKUP -----
+    # BACKUP
     if q.data == "admin_backup":
         await backup_cmd(q.message, context)
         return ConversationHandler.END
 
-    # ----- ADD COINS -----
+    # ADD COINS
     if q.data == "admin_addcoins":
         await q.message.reply_text("➕ Send user_id:")
         return ADDCOINS_UID
 
-    # ----- BROADCAST -----
+    # BROADCAST
     if q.data == "admin_broadcast":
         await q.message.reply_text("📢 Send broadcast message:")
         return BC_TEXT
 
-    # ----- UPLOAD HINT -----
+    # UPLOAD HINT
     if q.data == "admin_upload":
         await q.message.reply_text(
             "📷 Use:\n"
@@ -97,17 +91,14 @@ async def admin_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
-    # ----- STATS -----
+    # STATS
     if q.data == "admin_stats":
         c.execute("SELECT COUNT(*) FROM users")
         users = c.fetchone()[0] or 0
-
         c.execute("SELECT COUNT(*) FROM characters")
         chars = c.fetchone()[0] or 0
-
         c.execute("SELECT IFNULL(SUM(coins),0) FROM users")
         coins = c.fetchone()[0] or 0
-
         text = (
             "📊 <b>Bot Stats</b>\n\n"
             f"👥 Users: {users}\n"
@@ -117,13 +108,12 @@ async def admin_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.message.reply_text(text, parse_mode="HTML")
         return ConversationHandler.END
 
-    # ----- CLOSE -----
+    # CLOSE
     if q.data == "admin_close":
         await q.message.delete()
         return ConversationHandler.END
 
 # ================= ADD COINS WIZARD =================
-
 async def addcoins_uid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         uid = int(update.message.text)
@@ -131,7 +121,6 @@ async def addcoins_uid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         await update.message.reply_text("❌ Send valid user_id")
         return ADDCOINS_UID
-
     await update.message.reply_text("➕ Send amount:")
     return ADDCOINS_AMOUNT
 
@@ -141,22 +130,21 @@ async def addcoins_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         await update.message.reply_text("❌ Send valid amount")
         return ADDCOINS_AMOUNT
-
     uid = context.user_data["ac_uid"]
     init_user(uid)
     add_coins(uid, amount)
-
     await update.message.reply_text(f"✅ Added {amount} coins to {uid}")
     context.user_data.clear()
     return ConversationHandler.END
 
 # ================= BROADCAST WIZARD =================
-
 async def bc_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    context.user_data["bc_text"] = text
-
-    preview = f"📢 <b>Preview</b>\n\n{text}\n\nSend? (yes / no)"
+    context.user_data["bc_text"] = update.message.text
+    preview = (
+        "📢 <b>Preview</b>\n\n"
+        f"{update.message.text}\n\n"
+        "Send? (yes / no)"
+    )
     await update.message.reply_text(preview, parse_mode="HTML")
     return BC_CONFIRM
 
@@ -166,7 +154,6 @@ async def bc_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Broadcast canceled")
         context.user_data.clear()
         return ConversationHandler.END
-
     text = context.user_data["bc_text"]
     users = get_all_users()
     sent = 0
@@ -176,75 +163,17 @@ async def bc_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent += 1
         except:
             pass
-
     await update.message.reply_text(f"✅ Broadcast sent to {sent} users")
     context.user_data.clear()
     return ConversationHandler.END
 
 # ================= CANCEL =================
-
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Operation canceled")
     context.user_data.clear()
     return ConversationHandler.END
 
-# ================= BACKUP =================
-
-async def backup_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    if not is_admin(uid):
-        await update.message.reply_text("⚠ Admin only")
-        return
-
-    if not os.path.exists(DB_FILE):
-        await update.message.reply_text("❌ DB file not found")
-        return
-
-    now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_name = f"backup_{now}.zip"
-
-    try:
-        with zipfile.ZipFile(backup_name, "w", zipfile.ZIP_DEFLATED) as z:
-            z.write(DB_FILE)
-        await update.message.reply_document(open(backup_name, "rb"), caption="✅ Database Backup")
-        os.remove(backup_name)
-    except Exception as e:
-        await update.message.reply_text(f"❌ Backup failed:\n{e}")
-
-# ================= AUTO DAILY BACKUP =================
-
-BACKUP_DIR = "data/backups"
-if not os.path.exists(BACKUP_DIR):
-    os.makedirs(BACKUP_DIR)
-
-async def auto_daily_backup(context: ContextTypes.DEFAULT_TYPE):
-    if not os.path.exists(DB_FILE):
-        print("DB not found, skipping daily backup")
-        return
-
-    now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_name = os.path.join(BACKUP_DIR, f"backup_{now}.zip")
-
-    try:
-        with zipfile.ZipFile(backup_name, "w", zipfile.ZIP_DEFLATED) as z:
-            z.write(DB_FILE)
-        print(f"✅ Auto daily backup created: {backup_name}")
-
-        OWNER_ID = context.bot_data.get("OWNER_ID") or 1812962224
-        try:
-            await context.bot.send_message(OWNER_ID, f"✅ Daily backup created:\n{backup_name}")
-        except:
-            pass
-    except Exception as e:
-        print(f"❌ Auto backup failed: {e}")
-
-def start_auto_backup(app):
-    """Schedule daily backup at 02:00 AM"""
-    # Cron: minute hour day month day-of-week
-    cron = aiocron.crontab('0 2 * * *', func=lambda: app.create_task(auto_daily_backup(app)), start=True)
-
 # ================= CONVERSATION HANDLER =================
-
 admin_conv = ConversationHandler(
     entry_points=[CallbackQueryHandler(admin_btn, pattern=r"^admin_")],
     states={
@@ -254,5 +183,57 @@ admin_conv = ConversationHandler(
         BC_CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, bc_confirm)],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
-    allow_reentry=True
+    allow_reentry=True,
+    per_message=True  # fix PTB warning
 )
+
+# ================= BACKUP =================
+async def backup_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if not is_admin(uid):
+        await update.message.reply_text("⚠ Admin only")
+        return
+    if not os.path.exists(DB_FILE):
+        await update.message.reply_text("❌ DB file not found")
+        return
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_name = f"backup_{now}.zip"
+    try:
+        with zipfile.ZipFile(backup_name, "w", zipfile.ZIP_DEFLATED) as z:
+            z.write(DB_FILE)
+        await update.message.reply_document(
+            document=open(backup_name, "rb"),
+            caption="✅ Database Backup"
+        )
+        os.remove(backup_name)
+    except Exception as e:
+        await update.message.reply_text(f"❌ Backup failed:\n{e}")
+
+# ================= AUTO DAILY BACKUP =================
+import aiocron
+
+BACKUP_DIR = "data/backups"
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+async def auto_daily_backup(context: ContextTypes.DEFAULT_TYPE):
+    if not os.path.exists(DB_FILE):
+        print("DB not found, skipping daily backup")
+        return
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_name = os.path.join(BACKUP_DIR, f"backup_{now}.zip")
+    try:
+        with zipfile.ZipFile(backup_name, "w", zipfile.ZIP_DEFLATED) as z:
+            z.write(DB_FILE)
+        print(f"✅ Auto daily backup created: {backup_name}")
+        # Notify owner
+        try:
+            OWNER = context.bot_data.get("OWNER_ID", OWNER_ID)
+            await context.bot.send_message(OWNER, f"✅ Daily backup created:\n{backup_name}")
+        except:
+            pass
+    except Exception as e:
+        print(f"❌ Auto backup failed: {e}")
+
+def start_auto_backup(app):
+    """Schedule daily backup at 02:00 AM"""
+    aiocron.crontab('0 0 2 * *', func=lambda: app.create_task(auto_daily_backup(app)), start=True)
