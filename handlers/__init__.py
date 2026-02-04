@@ -27,13 +27,14 @@ from .store import store_cmd, store_btn, send_store
 from .inventory import inventory_cmd, inv_btn
 
 # Admin (ensure admin.py exports these)
+# Admin
 from .admin import (
-    admin_cmd,        # opens the admin panel (inline keyboard)
-    admin_btn,        # handles admin panel button callbacks
-    addcoins_cmd,
+    admin_cmd,
+    admin_conv,
     addadmin_cmd,
     upload_cmd,
 )
+
 
 # Player features
 from .profile import profile_cmd
@@ -76,8 +77,12 @@ def register_handlers(app):
 
     # ---- Admin commands & panel ----
     # Admin panel (inline keyboard)
+# Admin panel
     app.add_handler(CommandHandler("admin", admin_cmd))
-    # admin panel buttons (prefix "admin_")
+    app.add_handler(admin_conv)
+
+# Other admin
+# admin panel buttons (prefix "admin_")
     app.add_handler(CallbackQueryHandler(admin_btn, pattern=r'^admin_'))
 
     # Admin action commands (also kept available)
