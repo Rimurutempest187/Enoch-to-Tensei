@@ -1,10 +1,8 @@
 # handlers/__init__.py
 """
-Register all Telegram command & callback handlers here.
-
-Usage:
-    from handlers import register_handlers
-    register_handlers(app)   # where `app` is ApplicationBuilder().build()
+Central handler registration.
+Put this file in your handlers/ folder and import register_handlers(app)
+from your main.py (where `app` is ApplicationBuilder().build()).
 """
 
 from telegram.ext import (
@@ -26,28 +24,23 @@ from .store import store_cmd, store_btn, send_store
 # Inventory
 from .inventory import inventory_cmd, inv_btn
 
-# Admin (ensure admin.py exports these)
-# Admin
-from .admin import (
-    admin_cmd,
-    admin_conv,
-    addadmin_cmd,
-    upload_cmd,
-)
-
 # Player features
 from .profile import profile_cmd
 from .sell import sell_cmd
 from .quest import quest_cmd, claimquest_cmd
 from .duel import duel_cmd
 
-# Optional: broadcast, ban, backup handlers if you implement them
-# from .admin import broadcast_cmd, ban_cmd, backup_cmd
+# Admin (panel + convo)
+from .admin import (
+    admin_cmd,
+    admin_conv,
+    admin_btn,
+    backup_cmd,
+)
 
-# Config / helpers (for owner checks if needed)
-from db import is_admin
+# DB helper for owner-only addadmin wrapper
+from db import add_admin
 from config import OWNER_ID
-from .admin import backup_cmd
 
 
 def register_handlers(app):
@@ -75,32 +68,41 @@ def register_handlers(app):
     app.add_handler(CommandHandler("claimquest", claimquest_cmd))
     app.add_handler(CommandHandler("duel", duel_cmd))
 
-    # ---- Admin commands & panel ----
-    # Admin panel (inline keyboard)
-# Admin panel
+    # ---- Admin panel & wizard ----
+    # /admin opens the inline admin panel
     app.add_handler(CommandHandler("admin", admin_cmd))
+    # ConversationHandler for admin wizards (add coins, broadcast, ...)
     app.add_handler(admin_conv)
-    # Backup
+    # If admin buttons need a separate CallbackQueryHandler entry point (not required because admin_conv uses CallbackQueryHandler as entry),
+    # you can still register admin_btn for direct callback handling:
+    # app.add_handler(CallbackQueryHandler(admin_btn, pattern=r'^admin_'))
+
+    # ---- Admin utilities ----
+    # /backup (admin-only) - implemented in handlers.admin.backup_cmd
     app.add_handler(CommandHandler("backup", backup_cmd))
-# Other admin
-# admin panel buttons (prefix "admin_")
-    app.add_handler(CallbackQueryHandler(admin_btn, pattern=r'^admin_'))
 
-    # Admin action commands (also kept available)
-    app.add_handler(CommandHandler("upload", upload_cmd))
-    app.add_handler(CommandHandler("addcoins", addcoins_cmd))
-
-    # addadmin should be owner-only — wrap or check ownership here
-    def owner_only_addadmin(update, context):
+    # ---- Owner-only addadmin (wrapper) ----
+    async def owner_only_addadmin(update, context):
         uid = update.effective_user.id
         if uid != OWNER_ID:
-            return update.message.reply_text("Owner only")
-        return addadmin_cmd(update, context)
+            return await update.message.reply_text("Owner only")
+        # Expect: /addadmin <user_id>
+        if len(context.args) != 1:
+            return await update.message.reply_text("Usage: /addadmin <user_id>")
+        try:
+            target_id = int(context.args[0])
+        except:
+            return await update.message.reply_text("Invalid user_id")
+        ok = add_admin(target_id)
+        if ok:
+            await update.message.reply_text(f"✅ {target_id} added as admin")
+        else:
+            await update.message.reply_text("User already admin or DB error")
 
     app.add_handler(CommandHandler("addadmin", owner_only_addadmin))
 
-    # ---- Optional: fallback / help ----
-    # If you want to catch unknown commands, uncomment and implement unknown_cmd
-    # app.add_handler(MessageHandler(filters.COMMAND, unknown_cmd))
-
-    # Keep handlers registration centralized — add new handlers here.
+    # ---- Notes ----
+    # - Do not register duplicate handlers (e.g., if you previously had a separate addcoins_cmd,
+    #   the wizard handles add-coins flow via admin_conv).
+    # - If you want broadcast or backup to be available only via the admin panel buttons,
+    #   you may omit the CommandHandler registrations and rely solely on the panel.
