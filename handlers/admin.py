@@ -264,3 +264,47 @@ admin_conv = ConversationHandler(
 
     allow_reentry=True
 )
+# ================= BACKUP =================
+
+import zipfile
+from datetime import datetime
+
+
+async def backup_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    uid = update.effective_user.id
+
+    if not is_admin(uid):
+        await update.message.reply_text("⚠ Admin only")
+        return
+
+    from config import DB_FILE
+
+    if not os.path.exists(DB_FILE):
+        await update.message.reply_text("❌ DB file not found")
+        return
+
+
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    backup_name = f"backup_{now}.zip"
+
+
+    try:
+        with zipfile.ZipFile(backup_name, "w", zipfile.ZIP_DEFLATED) as z:
+            z.write(DB_FILE)
+
+
+        await update.message.reply_document(
+            document=open(backup_name, "rb"),
+            caption="✅ Database Backup"
+        )
+
+        os.remove(backup_name)
+
+
+    except Exception as e:
+
+        await update.message.reply_text(
+            f"❌ Backup failed:\n{e}"
+        )
