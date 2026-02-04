@@ -1,26 +1,56 @@
-<h2>Users</h2>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Users</title>
+</head>
+<body>
 
-<table border="1">
+<h2>User Management</h2>
+
+{% for cat,msg in get_flashed_messages(with_categories=true) %}
+  <p style="color:green">{{ msg }}</p>
+{% endfor %}
+
+<table border="1" cellpadding="5">
+
 <tr>
-<th>ID</th><th>Coins</th><th>Level</th><th>EXP</th><th>Edit</th>
+  <th>ID</th>
+  <th>Coins</th>
+  <th>Level</th>
+  <th>Edit</th>
 </tr>
 
 {% for u in users %}
+
 <tr>
-<td>{{u[0]}}</td>
-<td>{{u[1]}}</td>
-<td>{{u[2]}}</td>
-<td>{{u[3]}}</td>
+
+<form action="/users/edit/{{ u[0] }}" method="post">
+
+<td>{{ u[0] }}</td>
 
 <td>
-<form action="/edit_coins/{{u[0]}}" method="post">
-<input name="coins" value="{{u[1]}}">
-<button>Save</button>
-</form>
+  <input name="coins" value="{{ u[1] }}">
 </td>
 
+<td>
+  <input name="level" value="{{ u[2] }}">
+</td>
+
+<td>
+  <button>Save</button>
+</td>
+
+</form>
+
 </tr>
+
 {% endfor %}
+
 </table>
 
+<br>
+
 <a href="/dashboard">Back</a>
+
+</body>
+</html>
