@@ -35,7 +35,6 @@ from .admin import (
     upload_cmd,
 )
 
-
 # Player features
 from .profile import profile_cmd
 from .sell import sell_cmd
@@ -48,6 +47,7 @@ from .duel import duel_cmd
 # Config / helpers (for owner checks if needed)
 from db import is_admin
 from config import OWNER_ID
+from .admin import backup_cmd
 
 
 def register_handlers(app):
@@ -80,7 +80,8 @@ def register_handlers(app):
 # Admin panel
     app.add_handler(CommandHandler("admin", admin_cmd))
     app.add_handler(admin_conv)
-
+    # Backup
+    app.add_handler(CommandHandler("backup", backup_cmd))
 # Other admin
 # admin panel buttons (prefix "admin_")
     app.add_handler(CallbackQueryHandler(admin_btn, pattern=r'^admin_'))
