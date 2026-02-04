@@ -313,3 +313,47 @@ async def backup_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"❌ Backup failed:\n{e}"
         )
+# ================= AUTO DAILY BACKUP =================
+
+import aiocron
+import shutil
+
+BACKUP_DIR = "data/backups"
+
+# make folder if not exists
+if not os.path.exists(BACKUP_DIR):
+    os.makedirs(BACKUP_DIR)
+
+
+async def auto_daily_backup(context: ContextTypes.DEFAULT_TYPE):
+    """Backup DB daily at 02:00 server time"""
+    from config import DB_FILE
+
+    if not os.path.exists(DB_FILE):
+        print("DB not found, skipping daily backup")
+        return
+
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_name = os.path.join(BACKUP_DIR, f"backup_{now}.zip")
+
+    try:
+        with zipfile.ZipFile(backup_name, "w", zipfile.ZIP_DEFLATED) as z:
+            z.write(DB_FILE)
+        print(f"✅ Auto daily backup created: {backup_name}")
+
+        # Optional: send to owner/admin
+        OWNER_ID = context.bot_data.get("OWNER_ID") or 1812962224
+        try:
+            await context.bot.send_message(OWNER_ID, f"✅ Daily backup created:\n{backup_name}")
+        except:
+            pass
+
+    except Exception as e:
+        print(f"❌ Auto backup failed: {e}")
+
+
+def start_auto_backup(app):
+    """Schedule daily backup at 02:00 AM"""
+    # Cron syntax: second minute hour day month day-of-week
+    # 0 0 2 * * * -> every day 02:00
+    cron = aiocron.crontab('0 0 2 * *', func=lambda: app.create_task(auto_daily_backup(app)), start=True)
