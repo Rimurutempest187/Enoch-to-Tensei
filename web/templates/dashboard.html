@@ -1,5 +1,26 @@
-<h1>Admin Panel</h1>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+</head>
+<body>
 
-<a href="/users">Users</a><br>
-<a href="/chars">Characters</a><br>
+<h1>Admin Dashboard</h1>
+
+<p>Welcome: <b>{{ user }}</b></p>
+
+<hr>
+
+<p>Total Users: {{ users }}</p>
+<p>Total Characters: {{ chars }}</p>
+
+<hr>
+
+<a href="/users">Manage Users</a><br>
+<a href="/chars">Manage Characters</a><br>
+<a href="/logs">Audit Logs</a><br><br>
+
 <a href="/logout">Logout</a>
+
+</body>
+</html>
