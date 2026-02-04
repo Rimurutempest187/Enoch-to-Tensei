@@ -1,0 +1,21 @@
+<h2>Characters</h2>
+
+<table border="1">
+<tr>
+<th>ID</th><th>Name</th><th>Rarity</th>
+<th>Faction</th><th>Power</th><th>Price</th>
+</tr>
+
+{% for c in chars %}
+<tr>
+<td>{{c[0]}}</td>
+<td>{{c[1]}}</td>
+<td>{{c[2]}}</td>
+<td>{{c[3]}}</td>
+<td>{{c[4]}}</td>
+<td>{{c[5]}}</td>
+</tr>
+{% endfor %}
+</table>
+
+<a href="/dashboard">Back</a>
