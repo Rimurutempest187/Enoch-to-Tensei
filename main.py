@@ -1,55 +1,44 @@
 # main.py
-
 import logging
 from telegram.ext import ApplicationBuilder
 from db import init_db
 from handlers import register_handlers
 from keep_alive import keep_alive
 from config import BOT_TOKEN, OWNER_ID
-
-# admin auto-backup starter (if implemented in handlers/admin.py)
 from handlers.admin import start_auto_backup
 
-logging.basicConfig(
-    filename="bot.log",
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
-
 def main():
-    # initialize db (create tables if not exists)
     init_db()
 
     if not BOT_TOKEN:
         raise SystemExit("BOT_TOKEN missing in environment")
 
-    # build telegram application
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # register command / callback handlers (from handlers package)
+    # register handlers
     register_handlers(app)
 
-    # expose OWNER_ID to bot_data for use by handlers (notifications, backup messages, etc.)
+    # save OWNER_ID for notifications
     app.bot_data["OWNER_ID"] = OWNER_ID
 
-    # start auto daily backup task (if you implemented start_auto_backup)
+    # start auto backups (safe guarded)
     try:
         start_auto_backup(app)
-        logger.info("Auto daily backup scheduled (if configured).")
+        logger.info("Auto daily backup scheduled.")
     except Exception as e:
-        logger.warning(f"start_auto_backup failed to start: {e}")
+        logger.warning(f"Failed to schedule auto backup: {e}")
 
-    # optional small webserver to keep the process alive (Replit/Glitch/etc.)
+    # keep alive (optional)
     try:
         keep_alive()
-    except Exception as e:
-        logger.warning(f"keep_alive() failed: {e}")
+    except Exception:
+        pass
 
-    logger.info("Bot started, polling...")
+    logger.info("Bot started, running polling...")
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
