@@ -2,3 +2,5 @@ python-telegram-bot==20.4
 python-dotenv
 Flask
 Flask-Login
+bcrypt
+aiosqlite
